@@ -31,15 +31,11 @@ namespace Backend
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
-           /* services.AddAuthentication(opts =>
+            services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme
+            ).AddJwtBearer(cfg =>
             {
-                opts.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
-                opts.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-                opts.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-            }).AddJwtBearer(cfg =>
-            {
-                cfg.RequireHttpsMetadata = false;
-                cfg.SaveToken = true;
+                //cfg.RequireHttpsMetadata = false;
+                //cfg.SaveToken = true;
                 cfg.TokenValidationParameters = new TokenValidationParameters()
                 {
                     ValidIssuer = Configuration["Auth:Jwt:Issuer"],
@@ -52,7 +48,7 @@ namespace Backend
                     ValidateIssuerSigningKey = true,
                     ValidateAudience = true
                 };
-            });*/
+            });
 
             services.AddCors(options =>
             {
@@ -78,6 +74,7 @@ namespace Backend
             {
                 app.UseHsts();
             }
+            app.UseAuthentication();
             app.UseCors("CorsPolicy");
             app.UseHttpsRedirection();
             app.UseMvc();
