@@ -51,7 +51,7 @@ namespace Backend.Controllers
                     issuer: Configuration["Auth:Jwt:Issuer"],
                     audience: Configuration["Auth:Jwt:Audience"],
                     claims: new List<Claim>(),
-                    expires: DateTime.Now.AddMinutes(5),
+                    expires: DateTime.Now.AddMinutes(60),
                     signingCredentials: signinCredentials
                 );
 

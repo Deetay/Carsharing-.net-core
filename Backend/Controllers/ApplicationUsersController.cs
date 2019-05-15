@@ -8,6 +8,8 @@ using Microsoft.EntityFrameworkCore;
 using Backend.Data;
 using Backend.Models;
 using BCrypt.Net;
+using Microsoft.AspNetCore.Authorization;
+using System.IO;
 
 namespace Backend.Controllers
 {
@@ -30,6 +32,7 @@ namespace Backend.Controllers
         }
 
         // GET: api/ApplicationUsers/5
+        [Authorize]
         [HttpGet("{id}")]
         public async Task<IActionResult> GetApplicationUser([FromRoute] int id)
         {
@@ -48,41 +51,6 @@ namespace Backend.Controllers
             return Ok(applicationUser);
         }
 
-        // PUT: api/ApplicationUsers/5
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutApplicationUser([FromRoute] int id, [FromBody] ApplicationUser applicationUser)
-        {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            if (id != applicationUser.UserId)
-            {
-                return BadRequest();
-            }
-
-            _context.Entry(applicationUser).State = EntityState.Modified;
-
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!ApplicationUserExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
-
-            return NoContent();
-        }
-
         // POST: api/ApplicationUsers
         [HttpPost]
         public async Task<IActionResult> PostApplicationUser([FromBody] ApplicationUser applicationUser)
@@ -91,25 +59,65 @@ namespace Backend.Controllers
             {
                 return BadRequest(ModelState);
             }
-            applicationUser.Password = BCrypt.Net.BCrypt.HashPassword(applicationUser.Password, SaltRevision.Revision2);
-            _context.Users.Add(applicationUser);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction("GetApplicationUser", new { id = applicationUser.UserId }, applicationUser);
-        }
-        [HttpPost("signin")]
-        public async Task<IActionResult> SignIn([FromBody] ApplicationUser applicationUser)
-        {
-            if (!ModelState.IsValid)
+            if (_context.Users.SingleOrDefault(k => k.Email == applicationUser.Email) == null)
             {
-                return BadRequest(ModelState);
+                applicationUser.Password = BCrypt.Net.BCrypt.HashPassword(applicationUser.Password, SaltRevision.Revision2);
+                _context.Users.Add(applicationUser);
+                await _context.SaveChangesAsync();
+                return CreatedAtAction("GetApplicationUser", new { id = applicationUser.UserId }, applicationUser);
+            }
+            return StatusCode(500, "Account already exist");
+        }
+
+        // PUT: api/ApplicationUsers/id
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateApplicationUser([FromBody] ApplicationUser applicationUser, [FromRoute] int id)
+        {
+            if (ModelState.IsValid && _context.Users.FindAsync(applicationUser.UserId) != null)
+            {
+                var user = await _context.Users.FindAsync(id);
+                user.FirstName = applicationUser.FirstName;
+                user.LastName = applicationUser.LastName;
+                user.BirthDate = applicationUser.BirthDate;
+                user.Phone = applicationUser.Phone;
+                user.Car = applicationUser.Car;
+                user.Description = applicationUser.Description;
+                _context.Update(user);
+                await _context.SaveChangesAsync();
+                return Ok();
             }
 
-            ApplicationUser user = _context.Users.SingleOrDefault(k => k.Email == applicationUser.Email);
-            //TODO unique email column, jwt implementation
-            bool check = BCrypt.Net.BCrypt.Verify(applicationUser.Password, user.Password);
+            return BadRequest(ModelState);
 
-            return CreatedAtAction("GetApplicationUser", new { id = applicationUser.UserId }, check);
+        }
+
+        [HttpPost("addimg/{id}")]
+        public async Task<IActionResult> PostImage([FromForm(Name = "file")] IFormFile file, [FromRoute] int id)
+        {
+            if (ModelState.IsValid)
+            {
+                var user = await _context.Users.FindAsync(id);
+                using (var memoryStream = new MemoryStream())
+                {
+                    await file.CopyToAsync(memoryStream);
+                    user.Photo = memoryStream.ToArray();
+                }
+                _context.Update(user);
+                await _context.SaveChangesAsync();
+                return Ok();
+            }
+            return BadRequest(ModelState);
+        }
+        [HttpGet("getimg/{id}")]
+        public async Task<IActionResult> GetImage([FromRoute] int id)
+        {
+            if(ModelState.IsValid)
+            {
+                var user = await _context.Users.FindAsync(id);
+                return File(user.Photo, "image/jpg");
+            }
+            return BadRequest(ModelState);
+
         }
 
         // DELETE: api/ApplicationUsers/5
