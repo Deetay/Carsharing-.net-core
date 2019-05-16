@@ -36,7 +36,7 @@ namespace Backend.Models
 
         public DateTime Date { get; set; }
 
-        //public virtual ICollection<int> Passengers { get; set; }
+        public virtual ICollection<PassengerRide> PassengerRides { get; set; }
 
     }
 

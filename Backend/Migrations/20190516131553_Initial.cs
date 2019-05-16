@@ -99,6 +99,35 @@ namespace Backend.Migrations
                         onDelete: ReferentialAction.Restrict);
                 });
 
+            migrationBuilder.CreateTable(
+                name: "PassengerRides",
+                columns: table => new
+                {
+                    UserId = table.Column<int>(nullable: false),
+                    RideId = table.Column<int>(nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PassengerRides", x => new { x.UserId, x.RideId });
+                    table.ForeignKey(
+                        name: "FK_PassengerRides_Ride_RideId",
+                        column: x => x.RideId,
+                        principalTable: "Ride",
+                        principalColumn: "RideId",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_PassengerRides_User_UserId",
+                        column: x => x.UserId,
+                        principalTable: "User",
+                        principalColumn: "UserId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PassengerRides_RideId",
+                table: "PassengerRides",
+                column: "RideId");
+
             migrationBuilder.CreateIndex(
                 name: "IX_Place_CityId",
                 table: "Place",
@@ -117,6 +146,9 @@ namespace Backend.Migrations
 
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropTable(
+                name: "PassengerRides");
+
             migrationBuilder.DropTable(
                 name: "Ride");
 

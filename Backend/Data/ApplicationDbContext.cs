@@ -20,12 +20,23 @@ namespace Backend.Data
         public DbSet<City> Cities { get; set; }
         public DbSet<Place> Places { get; set; }
         public DbSet<Ride> Rides { get; set; }
+        public DbSet<PassengerRide> PassengerRides { get; set; }
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
-
+            modelBuilder.Entity<PassengerRide>()
+                .HasKey(pr => new { pr.UserId, pr.RideId });
+            modelBuilder.Entity<PassengerRide>()
+                .HasOne(pr => pr.User)
+                .WithMany(pr => pr.PassengerRides)
+                .HasForeignKey(pr => pr.UserId);
+            modelBuilder.Entity<PassengerRide>()
+                .HasOne(pr => pr.Ride)
+                .WithMany(pr => pr.PassengerRides)
+                .HasForeignKey(pr => pr.RideId);
         }
     }
 }

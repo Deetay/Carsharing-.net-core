@@ -73,7 +73,7 @@ namespace Backend.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateApplicationUser([FromBody] ApplicationUser applicationUser, [FromRoute] int id)
         {
-            if (ModelState.IsValid && _context.Users.FindAsync(applicationUser.UserId) != null)
+            if (ModelState.IsValid && ApplicationUserExists(id))
             {
                 var user = await _context.Users.FindAsync(id);
                 user.FirstName = applicationUser.FirstName;

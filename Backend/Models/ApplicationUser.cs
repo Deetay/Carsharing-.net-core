@@ -51,6 +51,7 @@ namespace Backend.Models
         public string Description { get; set; }
 
         public string Car { get; set; }
-
+        
+        public ICollection<PassengerRide> PassengerRides { get; set; }
     }
 }
