@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Backend.Data;
 using Backend.Models;
+using Backend.Models.ViewModels;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Backend.Controllers
 {
@@ -64,6 +66,22 @@ namespace Backend.Controllers
             return Ok(rides);
         }
 
+        // Get: api/Rides/User/{id}
+        [HttpGet("user/{id}")]
+        public IActionResult FindRideByUserId([FromRoute] int id)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var rides = _context.Rides.Where(k => k.OwnerId == id)
+                .Include(ride => ride.From).ThenInclude(place => place.City)
+                .Include(ride => ride.To).ThenInclude(place => place.City)
+                .ToList();
+            return Ok(rides);
+        }
+
 
         // POST: api/Rides
         [HttpPost]
@@ -90,6 +108,7 @@ namespace Backend.Controllers
         }
 
         // DELETE: api/Rides/5
+        [Authorize]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteRide([FromRoute] int id)
         {
@@ -97,17 +116,66 @@ namespace Backend.Controllers
             {
                 return BadRequest(ModelState);
             }
-
             var ride = await _context.Rides.FindAsync(id);
             if (ride == null)
             {
                 return NotFound();
             }
-
             _context.Rides.Remove(ride);
             await _context.SaveChangesAsync();
 
             return Ok(ride);
+        }
+        /*
+        // : api/Rides/{rideId}/passenger/{id}
+        [HttpPut("{rideId}/passenger/{id}")]
+        public async Task<IActionResult> removePassenger([FromRoute] int rideId, [FromRoute] int id)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+            var ride = await _context.Rides.FindAsync(rideId);
+
+            return Ok();
+        }*/
+
+        [HttpPut("{rideId}/passenger")]
+        public async Task<IActionResult> addPassenger([FromRoute] int rideId, [FromBody] NewPassenger newPassenger)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var ride = await _context.Rides
+                .Include(r => r.PassengerRides)
+                .Include(r => r.From).ThenInclude(place => place.City)
+                .Include(r => r.To).ThenInclude(place => place.City)
+                .FirstOrDefaultAsync(r => r.RideId == rideId);
+
+            var user = await _context.Users
+                .Include(r => r.PassengerRides)
+                .FirstOrDefaultAsync(u => u.UserId == newPassenger.PassengerId);
+
+            if(ride != null && user != null)
+            {
+                if (ride.NumOfSeats > ride.BookedSeats)
+                {
+                    ride.BookedSeats = ride.BookedSeats + 1;
+                    var passengerRide = new PassengerRide { Ride = ride, RideId = ride.RideId, User = user, UserId = user.UserId };
+                    ride.PassengerRides.Add(passengerRide);
+                    user.PassengerRides.Add(passengerRide);
+                    _context.Rides.Update(ride);
+                    _context.Users.Update(user);
+                    await _context.SaveChangesAsync();
+
+                    return Ok();
+
+                }
+                else return StatusCode(500, "No seats available");
+            }
+            return NotFound();
         }
 
         private bool RideExists(int id)
