@@ -126,22 +126,31 @@ namespace Backend.Controllers
 
             return Ok(ride);
         }
-        /*
+        
         // : api/Rides/{rideId}/passenger/{id}
         [HttpPut("{rideId}/passenger/{id}")]
-        public async Task<IActionResult> removePassenger([FromRoute] int rideId, [FromRoute] int id)
+        public async Task<IActionResult> RemovePassenger([FromRoute] int rideId, [FromRoute] int id)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
-            var ride = await _context.Rides.FindAsync(rideId);
+            var ride = await _context.Rides
+               .Include(r => r.PassengerRides)
+               .Include(r => r.From).ThenInclude(place => place.City)
+               .Include(r => r.To).ThenInclude(place => place.City)
+               .FirstOrDefaultAsync(r => r.RideId == rideId);
+
+            ride.PassengerRides = ride.PassengerRides.Where(pr => pr.RideId != rideId && pr.UserId != id).ToList();
+            _context.Rides.Update(ride);
+            await _context.SaveChangesAsync();
+
 
             return Ok();
-        }*/
+        }
 
         [HttpPut("{rideId}/passenger")]
-        public async Task<IActionResult> addPassenger([FromRoute] int rideId, [FromBody] NewPassenger newPassenger)
+        public async Task<IActionResult> AddPassenger([FromRoute] int rideId, [FromBody] NewPassenger newPassenger)
         {
             if (!ModelState.IsValid)
             {
